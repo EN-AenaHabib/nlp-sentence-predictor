@@ -1,10 +1,9 @@
-
 ```markdown
-# <div align="center" style="color:#4DA6FF;">NLP Sentence Predictor</div>
+# <div align="center" style="color:#4DA6FF;">🧠 NLP Sentence Predictor</div>
 
 <div align="center">
 
-[![Live Demo](https://img.shields.io/badge/🤗%20Hugging%20Face-Live%20Demo-yellow?style=for-the-badge)](https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor)  
+[![Live Demo](livedemo.png)](https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor)  
 [![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python)](https://python.org)  
 [![Flask](https://img.shields.io/badge/Flask-3.0-black?style=for-the-badge&logo=flask)](https://flask.palletsprojects.com)  
 [![Dataset](https://img.shields.io/badge/Dataset-WikiText--2-green?style=for-the-badge)](https://huggingface.co/datasets/wikitext)  
@@ -19,23 +18,23 @@
 
 ## 🔴 Live Demo
 
-> 👉 **[Try it now!](https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor)**  
+> 👉 **[Click here to try the live demo](https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor)**  
 
-Watch your sentences come alive with **next-word predictions** and **dynamic completion**!
+Experience interactive **next-word predictions** and **dynamic sentence completion** with real-time updates.
 
 ---
 
 ## ✨ Features
 
 - **Bigram & Trigram** language models with Laplace (Add-1) smoothing  
-- **WikiText-2** dataset (~2M tokens) — coherent, high-quality Wikipedia text  
-- **UNK handling** — rare words replaced with `<UNK>`  
+- **WikiText-2** dataset (~2M tokens) — high-quality, coherent Wikipedia text  
+- **UNK handling** — rare words replaced with `<UNK>` token  
 - **Trigram → Bigram backoff** for unseen contexts  
-- **Top-5 next word predictions** with animated probability bars  
+- **Top-5 next word predictions** displayed with animated probability bars  
 - **Greedy sentence completion** with highlighted generated words  
-- **Session history** — click any past result to reload it  
+- **Session history** — easily reload previous results  
 - **Keyboard shortcuts:** `Ctrl+Enter` to predict, `Ctrl+Shift+Enter` to complete  
-- **Modern HTML/CSS/JS frontend** — dark futuristic theme  
+- **Modern HTML/CSS/JS frontend** — dark futuristic theme with responsive design  
 
 ---
 
@@ -76,7 +75,7 @@ git push
 
 ### Step 3 — Wait for build
 
-* Hugging Face auto-builds the Docker image
+* Hugging Face automatically builds the Docker image
 * Your live URL: `https://Aenpi-nlp-sentence-predictor.hf.space`
 
 ---
@@ -84,63 +83,64 @@ git push
 ## 💻 Run Locally
 
 ```bash
-# Clone
+# Clone the repository
 git clone https://github.com/YOUR_USERNAME/nlp-sentence-predictor
 cd nlp-sentence-predictor
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Run
+# Run the application
 python app.py
 ```
 
-Open `http://localhost:7860` in your browser.
+Open `http://localhost:7860` in your browser to interact with the predictor locally.
 
 ---
 
 ## 🧪 How It Works
 
-**Dataset:** WikiText-2 (~2M tokens) — clean, coherent Wikipedia text
+**Dataset:** WikiText-2 (~2M tokens) — clean, well-structured Wikipedia articles
 
-**Bigram model:**
+**Bigram Model:**
 
 ```
 P(w_i | w_{i-1}) = (count(w_{i-1}, w_i) + 1) / (count(w_{i-1}) + |V|)
 ```
 
-**Trigram model:**
+**Trigram Model:**
 
 ```
 P(w_i | w_{i-2}, w_{i-1}) = (count(w_{i-2}, w_{i-1}, w_i) + 1) / (count(w_{i-2}, w_{i-1}) + |V|)
 ```
 
-**Backoff:** Trigram → Bigram when context is unseen
-**Laplace Smoothing:** ensures rare combinations get non-zero probability
+**Backoff:** Uses Trigram → Bigram when context is unseen
+**Laplace Smoothing:** Assigns small non-zero probability to rare or unseen sequences
 
 ---
 
-## 📊 Model Stats
+## 📊 Model Statistics
 
 | Metric         | Value                      |
 | -------------- | -------------------------- |
 | Dataset        | WikiText-2 (~2M tokens)    |
 | Vocabulary     | ~10,000 words (min_freq=3) |
-| Training split | 90%                        |
+| Training Split | 90%                        |
 | Smoothing      | Laplace (Add-1)            |
 | Backoff        | Trigram → Bigram           |
 
 ---
 
-## Author
+## 👩‍💻 Author
 
 **Aena Habib — F23607020**
+
 
 ---
 
 ## 📄 License
 
-MIT License — free to use and modify.
+MIT License — free to use, distribute, and modify.
 
 ```
-
+```
