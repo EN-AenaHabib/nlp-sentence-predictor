@@ -1,2 +1,10 @@
-# nlp-sentence-predictor
-NLP-powered sentence completion and next-word predictor using Bigram &amp; Trigram language models with Laplace smoothing, trained on WikiText-2, deployed via Flask on Hugging Face Spaces.
+---
+title: NLP Sentence Completion & Next Word Predictor
+emoji: 🧠
+colorFrom: green
+colorTo: blue
+sdk: docker
+pinned: false
+license: mit
+short_description: Bigram & Trigram language models on WikiText-2 with a sleek UI
+---
