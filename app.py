@@ -1,12 +1,13 @@
 """
-NLP Sentence Completion & Next Word Predictor
-=============================================
+LexPredict — Statistical Language Model
+========================================
+Next-Word Prediction · Sentence Completion · Spelling Correction
 Deployed on Hugging Face Spaces (Flask)
-Dataset: WikiText-2 (via HuggingFace datasets) — much richer than Brown Corpus
+Dataset: WikiText-2 (via HuggingFace datasets)
 Models : Bigram & Trigram with Laplace smoothing + UNK handling
 """
 
-import os, re, math, json
+import os, re, math, json, difflib
 from collections import defaultdict, Counter
 from flask import Flask, request, jsonify, render_template_string
 
@@ -49,6 +50,9 @@ train_sents = clean_sents[:split]
 vocab = build_vocab(train_sents, min_freq=3)
 print(f"Vocabulary size: {len(vocab):,}")
 
+# Real word list for spelling correction (exclude special tokens)
+REAL_WORDS = sorted([w for w in vocab if not w.startswith("<")])
+
 def unk_sent(sentence, vocab):
     return [w if w in vocab else "<UNK>" for w in sentence]
 
@@ -80,7 +84,32 @@ print("Models ready!")
 VOCAB_SIZE = len(vocab)
 SKIP = {"<UNK>", "<s>", "</s>"}
 
-# ── 4. Prediction helpers ─────────────────────────────────────────────────────
+# ── 4. Spelling correction ────────────────────────────────────────────────────
+def correct_word(word, n=3, cutoff=0.75):
+    """
+    Return up to n spelling suggestions for a given word using difflib
+    sequence matching against the vocabulary. Returns [] if word is correct.
+    """
+    word = word.lower()
+    if word in vocab:
+        return []  # Already correct
+    matches = difflib.get_close_matches(word, REAL_WORDS, n=n, cutoff=cutoff)
+    return matches
+
+def correct_sentence(text):
+    """
+    Check each word in the text and return per-word correction suggestions
+    for any misspelled words.
+    """
+    words = preprocess(text)
+    corrections = []
+    for w in words:
+        suggestions = correct_word(w)
+        if suggestions:
+            corrections.append({"word": w, "suggestions": suggestions})
+    return corrections
+
+# ── 5. Prediction helpers ─────────────────────────────────────────────────────
 def unk_word(w):
     return w if w in vocab else "<UNK>"
 
@@ -92,7 +121,6 @@ def predict_bigram(word, top_k=5):
         w: (dist.get(w, 0) + 1) / (total + VOCAB_SIZE)
         for w in dist if w not in SKIP
     }
-    # Also consider top vocab words unseen in context
     if not scored:
         scored = {"the": 1/VOCAB_SIZE, "a": 1/VOCAB_SIZE,
                   "in": 1/VOCAB_SIZE, "of": 1/VOCAB_SIZE, "and": 1/VOCAB_SIZE}
@@ -103,7 +131,6 @@ def predict_trigram(w1, w2, top_k=5):
     dist = trigram_model[(w1, w2)]
     total = sum(dist.values())
     if total == 0:
-        # Backoff to bigram
         return predict_bigram(w2, top_k)
     scored = {
         w: (dist.get(w, 0) + 1) / (total + VOCAB_SIZE)
@@ -130,7 +157,6 @@ def complete_sentence(seed_text, model_type="trigram", max_words=10):
             break
         generated.append(next_word)
 
-    # Replace UNK tokens with original words where possible
     result = []
     for i, w in enumerate(generated):
         if w == "<UNK>" and i < len(words):
@@ -142,7 +168,7 @@ def complete_sentence(seed_text, model_type="trigram", max_words=10):
     new_words = result[len(words):]
     return " ".join(result), new_words
 
-# ── 5. Flask routes ───────────────────────────────────────────────────────────
+# ── 6. Flask routes ───────────────────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template_string(HTML_PAGE)
@@ -175,19 +201,28 @@ def complete():
     full, added = complete_sentence(text, model_type=mode, max_words=max_words)
     return jsonify({"full": full, "added": added})
 
+@app.route("/spell", methods=["POST"])
+def spell():
+    data = request.get_json()
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify([])
+    corrections = correct_sentence(text)
+    return jsonify(corrections)
+
 @app.route("/health")
 def health():
     return jsonify({"status": "ok", "vocab_size": VOCAB_SIZE,
                     "bigram_contexts": len(bigram_model),
                     "trigram_contexts": len(trigram_model)})
 
-# ── 6. HTML Page (full frontend) ──────────────────────────────────────────────
+# ── 7. HTML Page (full frontend) ──────────────────────────────────────────────
 HTML_PAGE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NLP Sentence Predictor · NUTECH AI-23</title>
+<title>LexPredict · NLP Language Model</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -202,6 +237,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
   --accent2:#ff6eb4;
   --accent3:#4db8ff;
   --accent4:#ffd166;
+  --accent5:#c084fc;
   --text:#dde4f0;
   --muted:#4a5568;
   --muted2:#6b7a99;
@@ -210,6 +246,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
   --glow1:rgba(0,255,179,.15);
   --glow2:rgba(255,110,180,.15);
   --glow3:rgba(77,184,255,.15);
+  --glow5:rgba(192,132,252,.15);
 }
 
 body{
@@ -220,7 +257,6 @@ body{
   overflow-x:hidden;
 }
 
-/* ── Noise texture overlay ── */
 body::before{
   content:'';
   position:fixed;inset:0;
@@ -228,7 +264,6 @@ body::before{
   pointer-events:none;z-index:0;opacity:.4;
 }
 
-/* ── Grid background ── */
 body::after{
   content:'';
   position:fixed;inset:0;
@@ -267,17 +302,24 @@ body::after{
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 
 .header h1{
-  font-size:clamp(28px,6vw,52px);
-  font-weight:800;letter-spacing:-2px;line-height:1.05;
+  font-size:clamp(36px,7vw,64px);
+  font-weight:800;letter-spacing:-3px;line-height:1.0;
   background:linear-gradient(135deg,var(--accent1) 0%,var(--accent3) 45%,var(--accent2) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   background-clip:text;
   animation:fadeUp .7s .1s ease both;
 }
 
+.header .tagline{
+  margin-top:10px;
+  font-family:var(--font-mono);font-size:12px;
+  color:var(--accent3);letter-spacing:1px;
+  animation:fadeUp .7s .15s ease both;
+}
+
 .header .sub{
-  margin-top:12px;
-  font-family:var(--font-mono);font-size:13px;
+  margin-top:8px;
+  font-family:var(--font-mono);font-size:12px;
   color:var(--muted2);letter-spacing:.5px;
   animation:fadeUp .7s .2s ease both;
 }
@@ -296,6 +338,7 @@ body::after{
 .tag-blue {background:rgba(77,184,255,.1);color:var(--accent3);border:1px solid rgba(77,184,255,.2);}
 .tag-pink {background:rgba(255,110,180,.1);color:var(--accent2);border:1px solid rgba(255,110,180,.2);}
 .tag-gold {background:rgba(255,209,102,.1);color:var(--accent4);border:1px solid rgba(255,209,102,.2);}
+.tag-purple{background:rgba(192,132,252,.1);color:var(--accent5);border:1px solid rgba(192,132,252,.2);}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 
@@ -341,7 +384,6 @@ body::after{
   opacity:.6;
 }
 
-/* ── Section label ── */
 .slabel{
   font-family:var(--font-mono);font-size:9px;
   letter-spacing:3px;text-transform:uppercase;
@@ -368,7 +410,6 @@ body::after{
   letter-spacing:1px;
   padding:8px 18px;cursor:pointer;
   transition:all .2s;
-  position:relative;
 }
 .seg-btn+.seg-btn{border-left:1px solid var(--border2);}
 .seg-btn.active{background:var(--accent1);color:#080a0f;font-weight:600;}
@@ -444,6 +485,8 @@ textarea::placeholder{color:var(--muted);}
 .btn-p:hover{box-shadow:0 0 20px var(--glow1);transform:translateY(-1px);}
 .btn-s{background:transparent;color:var(--accent3);border:1px solid rgba(77,184,255,.4);}
 .btn-s:hover{background:var(--glow3);box-shadow:0 0 16px var(--glow3);transform:translateY(-1px);}
+.btn-spell{background:transparent;color:var(--accent5);border:1px solid rgba(192,132,252,.4);}
+.btn-spell:hover{background:var(--glow5);box-shadow:0 0 16px var(--glow5);transform:translateY(-1px);}
 .btn-g{background:transparent;color:var(--muted2);border:1px solid var(--border2);}
 .btn-g:hover{color:var(--text);border-color:var(--muted2);}
 
@@ -475,6 +518,7 @@ textarea::placeholder{color:var(--muted);}
 .info-chip.blue  b{color:var(--accent3);}
 .info-chip.pink  b{color:var(--accent2);}
 .info-chip.gold  b{color:var(--accent4);}
+.info-chip.purple b{color:var(--accent5);}
 
 /* ── Tabs ── */
 .tabs{
@@ -559,6 +603,58 @@ textarea::placeholder{color:var(--muted);}
 
 .comp-actions{display:flex;gap:10px;margin-top:12px;}
 
+/* ── Spelling panel ── */
+.spell-empty{
+  text-align:center;padding:28px 0;
+  font-family:var(--font-mono);font-size:12px;
+  color:var(--muted);letter-spacing:1px;
+}
+.spell-ok{
+  display:flex;align-items:center;gap:10px;
+  padding:18px 20px;
+  background:rgba(0,255,179,.06);
+  border:1px solid rgba(0,255,179,.2);
+  border-radius:10px;
+  font-family:var(--font-mono);font-size:13px;
+  color:var(--accent1);
+}
+.spell-ok .icon{font-size:20px;}
+.spell-list{display:flex;flex-direction:column;gap:10px;}
+.spell-item{
+  background:var(--surface2);
+  border:1px solid rgba(192,132,252,.25);
+  border-radius:10px;
+  padding:14px 18px;
+  animation:chipIn .28s ease both;
+}
+.spell-word{
+  font-family:var(--font-mono);font-size:15px;
+  font-weight:600;color:var(--accent2);
+  margin-bottom:8px;display:flex;align-items:center;gap:8px;
+}
+.spell-word .badge{
+  font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  background:rgba(255,110,180,.12);
+  border:1px solid rgba(255,110,180,.25);
+  color:var(--accent2);
+  padding:2px 8px;border-radius:4px;
+}
+.spell-suggestions{display:flex;gap:8px;flex-wrap:wrap;}
+.sug-btn{
+  background:rgba(192,132,252,.1);
+  border:1px solid rgba(192,132,252,.3);
+  color:var(--accent5);
+  font-family:var(--font-mono);font-size:12px;
+  padding:5px 14px;border-radius:6px;
+  cursor:pointer;transition:all .18s;
+}
+.sug-btn:hover{
+  background:rgba(192,132,252,.25);
+  transform:translateY(-1px);
+  box-shadow:0 0 12px var(--glow5);
+}
+.spell-arrow{color:var(--muted);font-size:11px;font-family:var(--font-mono);}
+
 /* ── History ── */
 .hist-list{display:flex;flex-direction:column;gap:8px;}
 .hist-item{
@@ -586,7 +682,6 @@ textarea::placeholder{color:var(--muted);}
 }
 .hist-del:hover{color:var(--accent2);background:rgba(255,110,180,.1);}
 
-/* ── Empty ── */
 .empty{
   text-align:center;padding:28px 0;
   font-family:var(--font-mono);font-size:12px;
@@ -640,7 +735,7 @@ textarea::placeholder{color:var(--muted);}
 <!-- Loading overlay -->
 <div id="loading-overlay">
   <div class="loader-ring"></div>
-  <div class="loader-text" id="loader-msg">Loading NLP models…</div>
+  <div class="loader-text" id="loader-msg">Loading LexPredict…</div>
 </div>
 
 <div class="wrap">
@@ -648,13 +743,15 @@ textarea::placeholder{color:var(--muted);}
   <!-- Header -->
   <div class="header">
     <div class="header-eyebrow"><div class="dot"></div>NUTECH · AI-23 · NLP Lab</div>
-    <h1>Sentence Completion<br>&amp; Next Word Predictor</h1>
+    <h1>LexPredict</h1>
+    <p class="tagline">Next-Word Prediction · Sentence Completion · Spelling Correction</p>
     <p class="sub">Bigram &amp; Trigram Language Models · WikiText-2 Dataset · Laplace Smoothing</p>
     <div class="tags">
       <span class="tag tag-green">N-gram</span>
       <span class="tag tag-blue">WikiText-2</span>
       <span class="tag tag-pink">Laplace Smoothing</span>
       <span class="tag tag-gold">UNK Handling</span>
+      <span class="tag tag-purple">Spell Check</span>
     </div>
   </div>
 
@@ -705,6 +802,9 @@ textarea::placeholder{color:var(--muted);}
       <button class="btn btn-s" id="bComplete" onclick="doComplete()" disabled>
         <div class="spinner"></div><span class="blabel">✨ Complete Sentence</span>
       </button>
+      <button class="btn btn-spell" id="bSpell" onclick="doSpell()" disabled>
+        <div class="spinner"></div><span class="blabel">✎ Check Spelling</span>
+      </button>
       <button class="btn btn-g" onclick="doClear()">✕ Clear</button>
     </div>
 
@@ -714,6 +814,7 @@ textarea::placeholder{color:var(--muted);}
       <div class="info-chip blue">Dataset: <b>WikiText-2</b></div>
       <div class="info-chip pink">Smoothing: <b>Laplace</b></div>
       <div class="info-chip gold">Backoff: <b>Bigram fallback</b></div>
+      <div class="info-chip purple">Spell: <b>difflib</b></div>
     </div>
   </div>
 
@@ -722,6 +823,7 @@ textarea::placeholder{color:var(--muted);}
     <div class="tabs">
       <button class="tab-btn active" onclick="tab('predictions',this)">Next Word</button>
       <button class="tab-btn"        onclick="tab('completion',this)">Completion</button>
+      <button class="tab-btn"        onclick="tab('spelling',this)">Spell Check</button>
       <button class="tab-btn"        onclick="tab('history',this)">History</button>
     </div>
 
@@ -749,6 +851,14 @@ textarea::placeholder{color:var(--muted);}
       </div>
     </div>
 
+    <!-- Spelling -->
+    <div class="tab-panel" id="tab-spelling">
+      <div class="slabel">Spelling Analysis</div>
+      <div id="spellResults">
+        <div class="spell-empty">Click "Check Spelling" to analyse your text ↑</div>
+      </div>
+    </div>
+
     <!-- History -->
     <div class="tab-panel" id="tab-history">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
@@ -770,7 +880,7 @@ let lastComp = {full:'', added:[], seed:''};
 let hist = [];
 const COLORS = ['#00ffb3','#4db8ff','#ffd166','#ff6eb4','#c084fc'];
 
-// ── Boot: load health stats ────────────────────────────────────────────────
+// ── Boot ───────────────────────────────────────────────────────────────────
 (async function boot(){
   try{
     const r = await fetch('/health');
@@ -808,6 +918,7 @@ function onType(){
   const has = v.trim().length > 0;
   document.getElementById('bPredict').disabled  = !has;
   document.getElementById('bComplete').disabled = !has;
+  document.getElementById('bSpell').disabled    = !has;
 }
 
 function setLoad(id, on){
@@ -859,7 +970,6 @@ function renderPreds(preds){
   }
   const max = preds[0].prob;
   preds.forEach((p,i)=>{
-    // chip
     const chip = document.createElement('div');
     chip.className = 'pred-chip';
     chip.style.cssText = `border-color:${COLORS[i]}33;animation-delay:${i*55}ms`;
@@ -867,7 +977,6 @@ function renderPreds(preds){
                      `<span class="pp">${p.prob.toFixed(4)}%</span>`;
     chip.onclick = ()=>appendWord(p.word);
     grid.appendChild(chip);
-    // bar
     const row = document.createElement('div');
     row.className = 'bar-row';
     row.innerHTML = `<div class="bar-lbl" style="color:${COLORS[i]}">${p.word}</div>`+
@@ -892,7 +1001,6 @@ async function doComplete(){
   if(!text) return;
   const mw = document.getElementById('maxWords').value;
   setLoad('bComplete', true);
-  // show cursor animation
   document.getElementById('compBox').innerHTML =
     '<span class="seed-w">'+text+'</span> <span class="cursor-blink"></span>';
   tab('completion', document.querySelectorAll('.tab-btn')[1]);
@@ -931,6 +1039,64 @@ function useComp(){
   onType();
   tab('predictions', document.querySelectorAll('.tab-btn')[0]);
   toast('Loaded into input');
+}
+
+// ── Spell Check ───────────────────────────────────────────────────────────
+async function doSpell(){
+  const text = document.getElementById('inp').value.trim();
+  if(!text) return;
+  setLoad('bSpell', true);
+  tab('spelling', document.querySelectorAll('.tab-btn')[2]);
+  document.getElementById('spellResults').innerHTML =
+    '<div class="spell-empty">Checking spelling…</div>';
+  try{
+    const r = await fetch('/spell',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text})
+    });
+    const corrections = await r.json();
+    renderSpell(corrections);
+  }catch(e){ toast('Error — server may be loading'); }
+  finally{ setLoad('bSpell', false); document.getElementById('bSpell').disabled=false; }
+}
+
+function renderSpell(corrections){
+  const box = document.getElementById('spellResults');
+  if(!corrections.length){
+    box.innerHTML = `
+      <div class="spell-ok">
+        <span class="icon">✓</span>
+        <span>All words look correct — no spelling issues found.</span>
+      </div>`;
+    return;
+  }
+  box.innerHTML = `<div class="spell-list">`+
+    corrections.map((c,i)=>`
+      <div class="spell-item" style="animation-delay:${i*60}ms">
+        <div class="spell-word">
+          ${c.word}
+          <span class="badge">misspelled</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="spell-arrow">→ did you mean:</span>
+          <div class="spell-suggestions">
+            ${c.suggestions.map(s=>`<button class="sug-btn" onclick="replaceWord('${c.word}','${s}')">${s}</button>`).join('')}
+          </div>
+        </div>
+      </div>`).join('')+
+  `</div>`;
+}
+
+function replaceWord(original, replacement){
+  const ta = document.getElementById('inp');
+  // Replace first occurrence of the misspelled word (case-insensitive)
+  const regex = new RegExp('\\b'+original+'\\b','i');
+  ta.value = ta.value.replace(regex, replacement);
+  onType();
+  toast('Replaced "'+original+'" → "'+replacement+'"');
+  // Re-run spell check to refresh
+  doSpell();
 }
 
 // ── History ────────────────────────────────────────────────────────────────
@@ -973,24 +1139,26 @@ function doClear(){
   document.getElementById('predGrid').innerHTML='<div class="empty">Run a prediction to see results ↑</div>';
   document.getElementById('barList').innerHTML='';
   document.getElementById('compBox').innerHTML='<span style="color:var(--muted);font-size:13px">Click "Complete Sentence" to generate continuation…</span>';
+  document.getElementById('spellResults').innerHTML='<div class="spell-empty">Click "Check Spelling" to analyse your text ↑</div>';
 }
 
-// ── Keyboard shortcut ──────────────────────────────────────────────────────
+// ── Keyboard shortcuts ─────────────────────────────────────────────────────
 document.addEventListener('keydown', e=>{
-  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){
-    e.preventDefault();
-    if(!document.getElementById('bPredict').disabled) doPredict();
-  }
   if((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='Enter'){
     e.preventDefault();
     if(!document.getElementById('bComplete').disabled) doComplete();
+    return;
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){
+    e.preventDefault();
+    if(!document.getElementById('bPredict').disabled) doPredict();
   }
 });
 </script>
 </body>
 </html>"""
 
-# ── 7. Entry point ────────────────────────────────────────────────────────────
+# ── 8. Entry point ────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7860))
     app.run(host="0.0.0.0", port=port, debug=False)
