@@ -5,7 +5,7 @@
 <h1 align="center">LexPredict — Statistical Language Model & Sentence Predictor</h1>
 
 <p align="center">
-  Real-time next-word prediction and sentence completion powered by N-gram language models trained on WikiText-2.
+  Real-time next-word prediction , spell correction and sentence completion powered by N-gram language models trained on WikiText-2.
 </p>
 
 <p align="center">
@@ -114,13 +114,13 @@ Hugging Face will build and host your app automatically within a few minutes.
 
 ## 👥 Contributors
 
-| Name       | Email                   |
-|------------|-------------------------|
-| Aena Habib | aena@example.com        |
-| Member 2   | member2@example.com     |
-| Member 3   | member3@example.com     |
-| Member 4   | member4@example.com     |
-| Member 5   | member5@example.com     |
+| Name             | Email                         |
+|------------------|-------------------------------|
+| Aena Habib       | aenahabibf23@nutech.edu.pk    |
+| Aleena Tahir     | aleenatahirf23@nutech.edu.pk  |
+| Saqlain Abbas    | saqlainabbasf23@nutech.edu.pk |
+| Eman Asghar Kiani| emankainif23@nutech.edu.pk    |
+| Dua Kamal        | duakamalf23@nutech.edu.pk     |
 
 ---
 
