@@ -18,13 +18,13 @@
   <img src="https://img.shields.io/badge/License-MIT-red?style=for-the-badge" alt="License"/>
 </p>
 
+[![Lex-predictLive Demo](livedemo.png)](https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor/embed)
+
 ---
 
 ## 🚀 Live Demo
 
-> 👉 **[Try LexPredict on Hugging Face Spaces](https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor)**
-
-Experience real-time next-word predictions and dynamic sentence completion with an interactive UI.
+> 👉 **[Try LexPredict Live](https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor/embed)**
 
 ---
 
