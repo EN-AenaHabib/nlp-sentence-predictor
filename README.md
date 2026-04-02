@@ -1,5 +1,4 @@
 
----
 ```markdown
 # <div align="center" style="color:#4DA6FF;">NLP Sentence Predictor</div>
 
@@ -145,7 +144,3 @@ MIT License — free to use and modify.
 
 ```
 
----
-
-Do you want me to do that?
-```
