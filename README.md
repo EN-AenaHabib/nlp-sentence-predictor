@@ -1,8 +1,11 @@
 
+
 ---
 
 ```markdown
-# WordGenie— NLP Sentence Predictor
+<p align="center">
+  <span style="color:#4DA6FF; font-size:28px; font-weight:bold;">WordGenie — NLP Sentence Predictor</span>
+</p>
 
 > **One-line Description:** Predict the next word and complete sentences dynamically using N-gram language models.
 
