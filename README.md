@@ -1,7 +1,10 @@
-```markdown
-# <div align="center" style="color:#4DA6FF;">🧠 NLP Sentence Predictor</div>
 
-<div align="center">
+---
+
+```markdown
+# WordGenie— NLP Sentence Predictor
+
+> **One-line Description:** Predict the next word and complete sentences dynamically using N-gram language models.
 
 [![Live Demo](livedemo.png)](https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor)  
 [![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python)](https://python.org)  
@@ -9,32 +12,27 @@
 [![Dataset](https://img.shields.io/badge/Dataset-WikiText--2-green?style=for-the-badge)](https://huggingface.co/datasets/wikitext)  
 [![License](https://img.shields.io/badge/License-MIT-red?style=for-the-badge)](LICENSE)
 
-**National University of Technology · Department of Computer Science**  
-**Course:** Natural Language Processing Lab | **Batch:** AI-23
-
-</div>
-
 ---
 
 ## 🔴 Live Demo
 
-> 👉 **[Click here to try the live demo](https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor)**  
+> 👉 **[Try NameIt Live](https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor)**  
 
-Experience interactive **next-word predictions** and **dynamic sentence completion** with real-time updates.
+Experience **real-time next-word predictions** and **dynamic sentence completion** with a sleek interface.
 
 ---
 
 ## ✨ Features
 
-- **Bigram & Trigram** language models with Laplace (Add-1) smoothing  
-- **WikiText-2** dataset (~2M tokens) — high-quality, coherent Wikipedia text  
-- **UNK handling** — rare words replaced with `<UNK>` token  
-- **Trigram → Bigram backoff** for unseen contexts  
-- **Top-5 next word predictions** displayed with animated probability bars  
-- **Greedy sentence completion** with highlighted generated words  
-- **Session history** — easily reload previous results  
-- **Keyboard shortcuts:** `Ctrl+Enter` to predict, `Ctrl+Shift+Enter` to complete  
-- **Modern HTML/CSS/JS frontend** — dark futuristic theme with responsive design  
+- Bigram & Trigram language models with Laplace (Add-1) smoothing  
+- WikiText-2 dataset (~2M tokens) — high-quality, coherent Wikipedia text  
+- UNK handling — rare words replaced with `<UNK>` token  
+- Trigram → Bigram backoff for unseen contexts  
+- Top-5 next word predictions with animated probability bars  
+- Greedy sentence completion with highlighted generated words  
+- Session history — reload previous results easily  
+- Keyboard shortcuts: `Ctrl+Enter` to predict, `Ctrl+Shift+Enter` to complete  
+- Modern HTML/CSS/JS frontend — responsive dark futuristic theme  
 
 ---
 
@@ -42,11 +40,12 @@ Experience interactive **next-word predictions** and **dynamic sentence completi
 
 ```
 
-nlp-predictor/
-├── app.py            ← Flask backend + NLP models + HTML frontend
-├── requirements.txt  ← Python dependencies
-├── Dockerfile        ← For Hugging Face Spaces (Docker SDK)
-└── README.md         ← This file
+NameIt/
+├── app.py            # Flask backend + NLP models + HTML frontend
+├── requirements.txt  # Python dependencies
+├── Dockerfile        # For Hugging Face Spaces (Docker SDK)
+├── README.md         # This file
+└── livedemo.png      # Screenshot of live demo
 
 ````
 
@@ -54,53 +53,44 @@ nlp-predictor/
 
 ## 🚀 Deploy to Hugging Face Spaces
 
-### Step 1 — Create a Space
 1. Go to [huggingface.co/spaces](https://huggingface.co/spaces)  
 2. Click **"Create new Space"**  
 3. Name it `nlp-sentence-predictor`  
 4. Select **Docker** as the SDK  
 5. Set visibility to **Public**
 
-### Step 2 — Push your code
 ```bash
-# Clone your Space repo
+# Clone Space repo
 git clone https://huggingface.co/spaces/Aenpi/nlp-sentence-predictor
 cd nlp-sentence-predictor
 
-# Add files if not already present
+# Add project files
 git add .
-git commit -m "Deploy NLP Sentence Predictor"
+git commit -m "Deploy NameIt NLP Predictor"
 git push
 ````
 
-### Step 3 — Wait for build
-
-* Hugging Face automatically builds the Docker image
-* Your live URL: `https://Aenpi-nlp-sentence-predictor.hf.space`
+> Wait a few minutes for Hugging Face to build your app.
+> Live URL: `https://Aenpi-nlp-sentence-predictor.hf.space`
 
 ---
 
 ## 💻 Run Locally
 
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/nlp-sentence-predictor
-cd nlp-sentence-predictor
-
-# Install dependencies
+git clone https://github.com/YOUR_USERNAME/NameIt
+cd NameIt
 pip install -r requirements.txt
-
-# Run the application
 python app.py
 ```
 
-Open `http://localhost:7860` in your browser to interact with the predictor locally.
+Open `http://localhost:7860` in your browser.
 
 ---
 
 ## 🧪 How It Works
 
-**Dataset:** WikiText-2 (~2M tokens) — clean, well-structured Wikipedia articles
+**Dataset:** WikiText-2 (~2M tokens) — high-quality Wikipedia articles
 
 **Bigram Model:**
 
@@ -114,8 +104,8 @@ P(w_i | w_{i-1}) = (count(w_{i-1}, w_i) + 1) / (count(w_{i-1}) + |V|)
 P(w_i | w_{i-2}, w_{i-1}) = (count(w_{i-2}, w_{i-1}, w_i) + 1) / (count(w_{i-2}, w_{i-1}) + |V|)
 ```
 
-**Backoff:** Uses Trigram → Bigram when context is unseen
-**Laplace Smoothing:** Assigns small non-zero probability to rare or unseen sequences
+**Backoff:** Trigram → Bigram if context unseen
+**Laplace Smoothing:** Assigns small probability to rare/unseen sequences
 
 ---
 
@@ -131,10 +121,16 @@ P(w_i | w_{i-2}, w_{i-1}) = (count(w_{i-2}, w_{i-1}, w_i) + 1) / (count(w_{i-2},
 
 ---
 
-## 👩‍💻 Author
+## 👥 Group Members
 
-**Aena Habib — F23607020**
-
+| Name       | Email                                                 |
+| ---------- | ----------------------------------------------------- |
+| Aena Habib | **[aena@example.com](mailto:aena@example.com)**       |
+| Member 2   | **[member2@example.com](mailto:member2@example.com)** |
+| Member 3   | **[member3@example.com](mailto:member3@example.com)** |
+| Member 4   | **[member4@example.com](mailto:member4@example.com)** |
+| Member 3   | **[member3@example.com](mailto:member3@example.com)** |
+| Member 4   | **[member4@example.com](mailto:member4@example.com)** |
 
 ---
 
